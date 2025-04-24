@@ -13,6 +13,7 @@ import (
 type Bot struct {
 	db *db.BotlordDb
 	token string
+	textChannelId string
 	commands *[]Command
 }
 
@@ -20,6 +21,10 @@ func NewBot() *Bot {
 	token, exists := os.LookupEnv("DISCORD_BOT_TOKEN") 
 	if !exists {
 		log.Fatal("err: no discord bot token")
+	}
+	textChannelId, exists := os.LookupEnv("TEXT_CHANNEL_ID") 
+	if !exists {
+		log.Fatal("err: not text channel id")
 	}
 	var err error
 	db, err := db.InitDb()
@@ -29,6 +34,7 @@ func NewBot() *Bot {
 	bot := &Bot {
 		db: db,
 		token: token,
+		textChannelId: textChannelId,
 	}
 	bot.InitCommands()
 	return bot
@@ -49,7 +55,7 @@ func(b *Bot) InitCommands() {
 			Use: "",
 			Execute: func(s *discordgo.Session, m *discordgo.MessageCreate, args string) error {
 				user := fmt.Sprintf("<@%s>", m.Author.ID)
-				b.Reply(s, m, fmt.Sprintf("hi %s", user))
+				b.Reply(s, m, fmt.Sprintf("Meddl %s", user))
 				return nil
 			},
 		},
@@ -115,6 +121,7 @@ func(b *Bot) Start() {
 	}
 
 	sess.AddHandler(b.handleMessage)
+	sess.AddHandler(b.handleChannelUpdate)
 
 	sess.Identify.Intents = discordgo.IntentsAllWithoutPrivileged
 	err = sess.Open()
@@ -151,3 +158,15 @@ func (b *Bot) handleMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 }
 
+func (b *Bot) handleChannelUpdate(s *discordgo.Session, vs *discordgo.VoiceStateUpdate) {
+	if vs.BeforeUpdate == nil && vs.ChannelID != "" {
+		user, err := s.User(vs.UserID)
+		if err != nil {
+			log.Printf("Fehler beim Abrufen des Benutzers: %v", err)
+			return
+		}
+
+		msg := fmt.Sprintf("<@%s> ist dem Sprachkanal beigetreten!", user.ID)
+		s.ChannelMessageSend(b.textChannelId, msg)
+	}
+}

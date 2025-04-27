@@ -4,6 +4,7 @@ import (
 	"botlord/models"
 	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -28,6 +29,18 @@ func (b *Bot) InitCommands() {
 			Description: "Fuegt ein Zitat hinzu.",
 			Use:         "[Zitattext]",
 			Execute:     b.CmdAddQuote,
+		},
+		{
+			Trigger:     "!deleteQuote",
+			Description: "Loescht ein bestimmtes Zitat.",
+			Use:         "[Id]",
+			Execute:     b.CmdDeleteQuote,
+		},
+		{
+			Trigger:     "!quotes",
+			Description: "Gibt eine Tabelle aller Zitat zurueck",
+			Use:         "",
+			Execute:     b.CmdListQuotes,
 		},
 		{
 			Trigger:     "!quote",
@@ -64,6 +77,35 @@ func (b *Bot) CmdAddQuote(s *discordgo.Session, m *discordgo.MessageCreate, args
 	b.Reply(s, m, "Zitat erfolgreich hinzugefuegt.")
 	log.Printf("Quote successfully inserted: id %d", id)
 	return nil
+}
+
+func (b *Bot) CmdDeleteQuote(s *discordgo.Session, m *discordgo.MessageCreate, args string) error {
+	if args == "" {
+		b.Reply(s, m, "Keine Id zum Loeschen angegeben.")
+		return nil
+	}
+	id, err := strconv.Atoi(args)
+	if err != nil {
+		fmt.Println("err while args converting to string:", err)
+		return nil
+	}
+	b.db.Delete(id)
+	b.Reply(s, m, "Zitat erfolgreich geloescht.")
+	if err != nil {
+		b.Reply(s, m, fmt.Sprintf("err deleting quote: %v", err))
+	}
+	return nil
+}
+
+func (b *Bot) CmdListQuotes(s *discordgo.Session, m *discordgo.MessageCreate, args string) error {
+    quotes, err := b.db.GetAllQuotes()
+    if err != nil {
+        b.Reply(s, m, fmt.Sprintf("Fehler beim Abrufen der Zitate: %v", err))
+        return err
+    }
+    formattedQuotes := models.PrintQuotes(quotes)
+    b.Reply(s, m, formattedQuotes)
+    return nil
 }
 
 func (b *Bot) CmdRandomQuote(s *discordgo.Session, m *discordgo.MessageCreate, args string) error {

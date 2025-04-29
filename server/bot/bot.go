@@ -14,6 +14,7 @@ type Bot struct {
 	token         string
 	textChannelId string
 	commands      *[]Command
+	session       *discordgo.Session
 }
 
 func NewBot() *Bot {
@@ -34,8 +35,8 @@ func NewBot() *Bot {
 	}
 
 	bot := &Bot{
-		db:            db,
-		token:         token,
+		db:    db,
+		token: token,
 		//textChannelId: textChannelId,
 	}
 	bot.InitCommands()
@@ -61,5 +62,17 @@ func (b *Bot) Start() {
 		log.Fatalf("err: %v\n", err)
 	}
 
+	b.session = sess
 	fmt.Println("the bot is online...")
+}
+
+func (b *Bot) Stop() {
+	if b.session != nil {
+		err := b.session.Close()
+		if err != nil {
+			log.Printf("error closing session: %v\n", err)
+		} else {
+			fmt.Println("the bot is offline...")
+		}
+	}
 }

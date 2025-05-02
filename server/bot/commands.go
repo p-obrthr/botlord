@@ -3,7 +3,6 @@ package bot
 import (
 	"botlord/models"
 	"fmt"
-	"log"
 	"strconv"
 
 	"github.com/bwmarrin/discordgo"
@@ -60,40 +59,47 @@ func (b *Bot) InitCommands() {
 func (b *Bot) CmdGreet(s *discordgo.Session, m *discordgo.MessageCreate, args string) error {
 	user := fmt.Sprintf("<@%s>", m.Author.ID)
 	b.Reply(s, m, fmt.Sprintf("Meddl %s", user))
+	b.AddLog(fmt.Sprintf("User %s greeted", user))
 	return nil
 }
 
 func (b *Bot) CmdAddQuote(s *discordgo.Session, m *discordgo.MessageCreate, args string) error {
 	if args == "" {
 		b.Reply(s, m, "Kein Zitat mitgegeben.")
+		b.AddLog("Add quote failed: no quote text provided")
 		return nil
 	}
 	quote := models.NewQuote(args)
 	id, err := b.db.Insert(*quote)
 	if err != nil {
-		b.Reply(s, m, fmt.Sprintf("err adding quote: %v", err))
+		b.Reply(s, m, "Fehler beim Hinzufuegen des Zitats.")
+		b.AddLog(fmt.Sprintf("err adding quote: %v", err))
 		return err
 	}
 	b.Reply(s, m, "Zitat erfolgreich hinzugefuegt.")
-	log.Printf("Quote successfully inserted: id %d", id)
+	b.AddLog(fmt.Sprintf("Quote successfully inserted: id %d", id))
 	return nil
 }
 
 func (b *Bot) CmdDeleteQuote(s *discordgo.Session, m *discordgo.MessageCreate, args string) error {
 	if args == "" {
 		b.Reply(s, m, "Keine Id zum Loeschen angegeben.")
+		b.AddLog("Delete quote failed: no quote id provided")
 		return nil
 	}
 	id, err := strconv.Atoi(args)
 	if err != nil {
-		fmt.Println("err while args converting to string:", err)
+		b.AddLog(fmt.Sprintf("err while args converting to string: %v", err))
 		return nil
 	}
-	b.db.Delete(id)
-	b.Reply(s, m, "Zitat erfolgreich geloescht.")
-	if err != nil {
-		b.Reply(s, m, fmt.Sprintf("err deleting quote: %v", err))
+	deleteErr := b.db.Delete(id)
+	if deleteErr != nil {
+		b.Reply(s, m, "Beim Loeschen des Zitats ist ein Fehler aufgetreten")
+		b.AddLog("err while deleting quote")
 	}
+	b.Reply(s, m, "Zitat erfolgreich geloescht.")
+	b.AddLog(fmt.Sprintf("quote id %d deleted successfully", id))
+
 	return nil
 }
 
@@ -101,10 +107,12 @@ func (b *Bot) CmdListQuotes(s *discordgo.Session, m *discordgo.MessageCreate, ar
     quotes, err := b.db.GetAllQuotes()
     if err != nil {
         b.Reply(s, m, fmt.Sprintf("Fehler beim Abrufen der Zitate: %v", err))
+		b.AddLog("err fetching all quotes")
         return err
     }
     formattedQuotes := models.PrintQuotes(quotes)
     b.Reply(s, m, formattedQuotes)
+    b.AddLog("List quotes responed successfully")
     return nil
 }
 
@@ -112,10 +120,11 @@ func (b *Bot) CmdRandomQuote(s *discordgo.Session, m *discordgo.MessageCreate, a
 	quoteText, err := b.db.GetRandomQuoteText()
 	if err != nil {
 		b.Reply(s, m, fmt.Sprintf("Fehler: %v", err))
-		log.Printf("err: get random quote %v", err)
+		b.AddLog(fmt.Sprintf("err: get random quote %v", err))
 		return err
 	}
 	b.Reply(s, m, *quoteText)
+	b.AddLog("Random Quote responsed successfully")
 	return nil
 }
 
@@ -125,5 +134,6 @@ func (b *Bot) CmdListCommands(s *discordgo.Session, m *discordgo.MessageCreate, 
 		commandList += fmt.Sprintf("- %s %s >> %s\n", cmd.Trigger, cmd.Use, cmd.Description)
 	}
 	b.Reply(s, m, commandList)
+	b.AddLog("List Commands responsed successfully")
 	return nil
 }

@@ -2,7 +2,6 @@ package bot
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
@@ -23,7 +22,7 @@ func (b *Bot) handleMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 			}
 			err := cmd.Execute(s, m, args)
 			if err != nil {
-				log.Printf("err: executing command %s: %v", cmd.Trigger, err)
+				b.AddLog(fmt.Sprintf("err: executing command %s: %v", cmd.Trigger, err))
 			}
 			break
 		}
@@ -31,6 +30,7 @@ func (b *Bot) handleMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	if !guiltyCommand {
 		b.Reply(s, m, "Ungueltiges Kommando -> siehe !commands fuer gueltige Kommandos und weitere Informationen.")
+		b.AddLog(fmt.Sprintf("user requested unguilty cmd"))
 	}
 }
 
@@ -38,11 +38,14 @@ func (b *Bot) handleChannelUpdate(s *discordgo.Session, vs *discordgo.VoiceState
 	if vs.BeforeUpdate == nil && vs.ChannelID != "" {
 		user, err := s.User(vs.UserID)
 		if err != nil {
-			log.Printf("err while fetching user data: %v", err)
+			b.AddLog(fmt.Sprintf("err while fetching user data: %v", err))
 			return
 		}
 
+		fmt.Println(vs.ChannelID)
+
 		msg := fmt.Sprintf("<@%s> ist dem Sprachkanal beigetreten!", user.ID)
 		s.ChannelMessageSend(b.textChannelId, msg)
+		b.AddLog(fmt.Sprintf("notified text chat that somebody entered the voice channel"))
 	}
 }

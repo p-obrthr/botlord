@@ -2,6 +2,7 @@ package api
 
 import (
 	"botlord/bot"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"sync"
@@ -59,6 +60,19 @@ func (wr *Wrapper) StartHTTPServer(address string) {
 		} else {
 			w.Write([]byte("stopped"))
 		}
+	})
+
+	http.HandleFunc("/logs", func(w http.ResponseWriter, r *http.Request) {
+		maxLogs := 20
+
+		startIndex := len(wr.Bot.Logs) - maxLogs
+		if startIndex < 0 {
+			startIndex = 0
+		}
+		visibleLogs := wr.Bot.Logs[startIndex:]
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(visibleLogs)
 	})
 
 	fmt.Printf("HTTP server listening on %s\n", address)

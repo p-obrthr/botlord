@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -15,6 +16,7 @@ type Bot struct {
 	textChannelId string
 	commands      *[]Command
 	session       *discordgo.Session
+	Logs          []string
 }
 
 func NewBot() *Bot {
@@ -25,7 +27,7 @@ func NewBot() *Bot {
 
 	//textChannelId, exists := os.LookupEnv("TEXT_CHANNEL_ID")
 	//if !exists {
-	//	log.Fatal("err: not text channel id")
+		//log.Fatal("err: not text channel id")
 	//}
 
 	var err error
@@ -35,8 +37,8 @@ func NewBot() *Bot {
 	}
 
 	bot := &Bot{
-		db:    db,
-		token: token,
+		db:            db,
+		token:         token,
 		//textChannelId: textChannelId,
 	}
 	bot.InitCommands()
@@ -50,7 +52,7 @@ func (b *Bot) Reply(s *discordgo.Session, m *discordgo.MessageCreate, text strin
 func (b *Bot) Start() {
 	sess, err := discordgo.New("Bot " + b.token)
 	if err != nil {
-		log.Fatalf("err init discordgo: %v\n", err)
+		b.AddLog(fmt.Sprintf("err init discordgo: %v\n", err))
 	}
 
 	sess.AddHandler(b.handleMessage)
@@ -59,20 +61,31 @@ func (b *Bot) Start() {
 	sess.Identify.Intents = discordgo.IntentsAllWithoutPrivileged
 	err = sess.Open()
 	if err != nil {
-		log.Fatalf("err: %v\n", err)
+		b.AddLog(fmt.Sprintf("error closing session: %v\n", err))
 	}
 
 	b.session = sess
-	fmt.Println("the bot is online...")
+	b.AddLog("the bot is online...")
 }
 
 func (b *Bot) Stop() {
 	if b.session != nil {
 		err := b.session.Close()
 		if err != nil {
-			log.Printf("error closing session: %v\n", err)
+			b.AddLog(fmt.Sprintf("error closing session: %v\n", err))
 		} else {
-			fmt.Println("the bot is offline...")
+			b.AddLog("the bot is offline...")
 		}
 	}
+}
+
+func (b *Bot) AddLog(log string) {
+	location, err := time.LoadLocation("Europe/Berlin")
+	if err != nil {
+		location = time.UTC
+	}
+	timestamp := time.Now().In(location).Format("15:04:05")
+	formattedLog := fmt.Sprintf("[%s] %s", timestamp, log)
+	fmt.Println(formattedLog)
+	b.Logs = append(b.Logs, formattedLog)
 }

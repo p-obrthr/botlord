@@ -1,10 +1,8 @@
 package main
 
 import (
-	//"log"
 	"os"
 	"os/signal"
-	"fmt"
 	"syscall"
 
 	"botlord/bot"
@@ -16,7 +14,6 @@ func main() {
 
 	if os.Getenv("ENABLE_API") == "1" {
 		wr = api.NewWrapper()
-		fmt.Println("api requested")
 	}
 
 	b := bot.NewBot()

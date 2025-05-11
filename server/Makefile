@@ -7,6 +7,10 @@ build:
 docker-build:
 	docker build -t $(NAME) .
 
+docker-registry:
+	docker build -t $(REGISTRY_IP):5000/$(NAME) .
+	docker push $(REGISTRY_IP):5000/$(NAME)
+
 docker-run-api:
 	docker run -d --name botlord \
 		-e DISCORD_BOT_TOKEN=$(DISCORD_BOT_TOKEN) \

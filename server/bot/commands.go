@@ -37,7 +37,7 @@ func (b *Bot) InitCommands() {
 		},
 		{
 			Trigger:     "!quotes",
-			Description: "Gibt eine Tabelle aller Zitat zurueck",
+			Description: "Gibt eine Liste aller Zitat zurueck",
 			Use:         "",
 			Execute:     b.CmdListQuotes,
 		},
@@ -46,6 +46,30 @@ func (b *Bot) InitCommands() {
 			Use:         "",
 			Description: "Liefert ein zufaelliges Zitat zurueck.",
 			Execute:     b.CmdRandomQuote,
+		},
+		{
+			Trigger:     "!addGif",
+			Description: "Fuegt ein Gif ueber url hinzu.",
+			Use:         "[Url]",
+			Execute:     b.CmdAddGif,
+		},
+		{
+			Trigger:     "!deleteGif",
+			Description: "Loescht ein bestimmtes Gif.",
+			Use:         "[Id]",
+			Execute:     b.CmdDeleteGif,
+		},
+		{
+			Trigger:     "!gifs",
+			Description: "Gibt eine List aller Gifs zurueck",
+			Use:         "",
+			Execute:     b.CmdListGifs,
+		},
+		{
+			Trigger:     "!gif",
+			Use:         "",
+			Description: "Liefert ein zufaelliges Gif zurueck.",
+			Execute:     b.CmdRandomGif,
 		},
 		{
 			Trigger:     "!commands",
@@ -70,7 +94,7 @@ func (b *Bot) CmdAddQuote(s *discordgo.Session, m *discordgo.MessageCreate, args
 		return nil
 	}
 	quote := models.NewQuote(args)
-	id, err := b.db.Insert(*quote)
+	id, err := b.db.InsertQuote(*quote)
 	if err != nil {
 		b.Reply(s, m, "Fehler beim Hinzufuegen des Zitats.")
 		b.AddLog(fmt.Sprintf("err adding quote: %v", err))
@@ -92,7 +116,7 @@ func (b *Bot) CmdDeleteQuote(s *discordgo.Session, m *discordgo.MessageCreate, a
 		b.AddLog(fmt.Sprintf("err while args converting to string: %v", err))
 		return nil
 	}
-	deleteErr := b.db.Delete(id)
+	deleteErr := b.db.DeleteQuote(id)
 	if deleteErr != nil {
 		b.Reply(s, m, "Beim Loeschen des Zitats ist ein Fehler aufgetreten")
 		b.AddLog("err while deleting quote")
@@ -125,6 +149,71 @@ func (b *Bot) CmdRandomQuote(s *discordgo.Session, m *discordgo.MessageCreate, a
 	}
 	b.Reply(s, m, *quoteText)
 	b.AddLog("Random Quote responsed successfully")
+	return nil
+}
+
+func (b *Bot) CmdAddGif(s *discordgo.Session, m *discordgo.MessageCreate, args string) error {
+	if args == "" {
+		b.Reply(s, m, "Keine Url mitgegeben.")
+		b.AddLog("Add gif failed: no gif url provided")
+		return nil
+	}
+	gif := models.NewGif(args)
+	id, err := b.db.InsertGif(*gif)
+	if err != nil {
+		b.Reply(s, m, "Fehler beim Hinzufuegen des Gifs.")
+		b.AddLog(fmt.Sprintf("err adding gif: %v", err))
+		return err
+	}
+	b.Reply(s, m, "Gif erfolgreich hinzugefuegt.")
+	b.AddLog(fmt.Sprintf("Gif successfully inserted: id %d", id))
+	return nil
+}
+
+func (b *Bot) CmdDeleteGif(s *discordgo.Session, m *discordgo.MessageCreate, args string) error {
+	if args == "" {
+		b.Reply(s, m, "Keine Id zum Loeschen angegeben.")
+		b.AddLog("Delete gif failed: no gif id provided")
+		return nil
+	}
+	id, err := strconv.Atoi(args)
+	if err != nil {
+		b.AddLog(fmt.Sprintf("err while args converting to string: %v", err))
+		return nil
+	}
+	deleteErr := b.db.DeleteGif(id)
+	if deleteErr != nil {
+		b.Reply(s, m, "Beim Loeschen des Gifs ist ein Fehler aufgetreten")
+		b.AddLog("err while deleting gif")
+	}
+	b.Reply(s, m, "Gif erfolgreich geloescht.")
+	b.AddLog(fmt.Sprintf("gif id %d deleted successfully", id))
+
+	return nil
+}
+
+func (b *Bot) CmdListGifs(s *discordgo.Session, m *discordgo.MessageCreate, args string) error {
+    gifs, err := b.db.GetAllGifs()
+    if err != nil {
+        b.Reply(s, m, fmt.Sprintf("Fehler beim Abrufen der Gifs: %v", err))
+		b.AddLog("err fetching all gifs")
+        return err
+    }
+    formattedGifs := models.PrintGifs(gifs)
+    b.Reply(s, m, formattedGifs)
+    b.AddLog("List gifs responed successfully")
+    return nil
+}
+
+func (b *Bot) CmdRandomGif(s *discordgo.Session, m *discordgo.MessageCreate, args string) error {
+	gifUrl, err := b.db.GetRandomGif()
+	if err != nil {
+		b.Reply(s, m, fmt.Sprintf("Fehler: %v", err))
+		b.AddLog(fmt.Sprintf("err: get random gif %v", err))
+		return err
+	}
+	b.Reply(s, m, *gifUrl)
+	b.AddLog("Random Gif responsed successfully")
 	return nil
 }
 

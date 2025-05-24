@@ -25,10 +25,7 @@ func NewBot() *Bot {
 		log.Fatal("err: no discord bot token")
 	}
 
-	//textChannelId, exists := os.LookupEnv("TEXT_CHANNEL_ID")
-	//if !exists {
-		//log.Fatal("err: not text channel id")
-	//}
+	textChannelId, exists := os.LookupEnv("TEXT_CHANNEL_ID")
 
 	var err error
 	db, err := db.InitDb()
@@ -39,7 +36,7 @@ func NewBot() *Bot {
 	bot := &Bot{
 		db:            db,
 		token:         token,
-		//textChannelId: textChannelId,
+		textChannelId: textChannelId,
 	}
 	bot.InitCommands()
 	return bot
@@ -56,7 +53,10 @@ func (b *Bot) Start() {
 	}
 
 	sess.AddHandler(b.handleMessage)
-	//sess.AddHandler(b.handleChannelUpdate)
+
+	if b.textChannelId != "" {
+		sess.AddHandler(b.handleChannelUpdate)
+	}
 
 	sess.Identify.Intents = discordgo.IntentsAllWithoutPrivileged
 	err = sess.Open()

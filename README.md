@@ -19,7 +19,7 @@
 |:---------------------|:----------------------------------------------------------|:---------|
 | `DISCORD_BOT_TOKEN`  | Token used for bot authentication                         | Yes      |
 | `TEXT_CHANNEL_ID`    | Id of the text channel for voice join messages            | No       |
-| `ENABLE_API`         | Enables the API server for external interaction           | No       |
+| `ENABLE_API`         | API option: `0` disabled (default) or `1` enabled,        | No       |
 
 #### Available Commands
 
@@ -45,4 +45,4 @@
 - written in Go using Raylib
 - provides status information and bot control (start/stop)
 - logs events and actions
-- requires `ENABLE_API=true` on the server to function
+- requires `ENABLE_API=1` on the server to function
